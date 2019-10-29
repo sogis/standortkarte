@@ -1,0 +1,2 @@
+# standortkarte
+Generierung von Standortkarten
