@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/sogis/lidar-browser.svg?branch=master)](https://travis-ci.org/sogis/lidar-browser)
+[![Build Status](https://travis-ci.org/sogis/standortkarte.svg?branch=master)](https://travis-ci.org/sogis/standortkarte)
 
 # Standortkarten
 
