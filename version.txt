@@ -1,0 +1,5 @@
+
+Version: 1.0.LOCALBUILD
+Revision: 1ab887256d77cdc226aab994a1dc78ed2c05dd2c
+Buildtime: 28-10-2019 19:56:54
+Application-name: lidar-browser

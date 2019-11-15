@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<!-- Ansible managed: /etc/ansible/roles/standortkarte/templates/standortkarte.html.j2 modified on 2019-07-15 18:42:11 by ansible on srsofaioi19325 -->
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.4.0/ol.css" type="text/css" />
+        <style  type="text/css">
+
+            html, body, .map {
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                position: relative;
+                margin: 0 auto;
+                overflow: hidden;
+            }
+            #popup {
+                padding-bottom: 42px;
+            }
+            .popover{
+                width: 150px;
+            }
+         .ol-attribution {
+            /* TODO - only a cheap hack */
+            visibility: hidden;
+         }
+
+         .geolocate {
+            position: absolute;
+            top: 65px;
+            height: 22px;
+            width: 22px;
+            left: 10px;
+            background: rgba(255,255,255,0.4) no-repeat;
+            border-radius: 2px;
+            padding: 0px;
+          }
+
+         #export-print {
+            position: absolute;
+            cursor: pointer;
+            z-index: 444444;
+            top: 100px;
+            left: 10px;
+            background: rgba(51,51,51,0.4);
+            border-radius: 2px;
+            padding: 4px 1px 0px 1px;
+          }
+
+        #map .ol-zoom {
+            visibility: visible;
+            z-index: 999999;
+            top: 10px;
+            left: 8px;
+        }
+
+        #map .ol-zoom-in, #map .ol-zoom-out {
+            background-color: rgba(51,51,51,0.4);
+        }
+
+        #map .ol-zoom-in:hover, #map .ol-zoom-out:hover {
+            background-color: rgba(51,51,51,0.8);
+        }
+
+
+        #export-print:hover {
+            background: rgba(51,51,51,0.8);
+        }
+
+          @media screen and (max-width: 600px) {
+            #export-print {
+                visibility:hidden;
+                display: none;
+            }
+          }
+
+          .ol-touch .geolocate {
+            top: 80px;
+          }
+          
+            #track {
+            display: block;
+            border: none;
+            height: 22px;
+            width: 22px;
+            background: url('locate.png') no-repeat;
+            opacity: 0.4;
+          }
+
+          #track:hover {
+            opacity: 0.8;
+          }
+          #layer-select {
+              right: 1em;
+              top: 1em;
+              position: absolute;
+              width: 140px;
+              z-index: 100
+           } 
+        </style>
+        <title>Standortkarte</title>
+    </head>
+    <body>
+        <!--<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js" type="text/javascript"></script>-->
+        <script src='//cdn.jsdelivr.net/jquery/1.11.1/jquery.js' type='text/javascript'></script>      
+        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js" type="text/javascript"></script>
+        <!--<script src="http://api3.geo.admin.ch/loader.js?lang=en" type="text/javascript"></script>-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.4.0/ol.js" type="text/javascript"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.3.6/proj4.js"></script>
+        <script src="https://epsg.io/2056.js"></script>
+        <div id="map" class="map">
+        <div id="export-print" title="Drucken">
+            <svg width="22" height="18" xmlns="https://www.w3.org/2000/svg">
+                <g transform="scale(1.3)" style="fill:#FFF">
+                    <path d="M4,12v3h8v-3v-2H4V12z M5,11h6v1H5V11z M5,13h6v1H5V13z" />
+                    <polygon points="12,3 12,0 4,0 4,3 4,5 12,5     "/>
+                    <path d="M14,3h-1v2v1H3V5V3H2C1,3,0,4,0,5v5c0,1,1,2,2,2h1v-2V9h10v1v2h1c1,0,2-1,2-2V5C16,4,15,3,14,3z"/>
+                </g>
+            </svg>
+          </div>
+          <div id="popup"></div>
+            <div id="divgeo" class='geolocate'>
+                 <button id='track' class="" title="Geolokalisierung"></button>
+                 <!--<input id="track" name="track" type="checkbox">
+                 <label for="track"></label>-->
+             </div>
+             <select id="layer-select" class="form-control"></select>
+        </div>
+
+            <script type="text/javascript">
+           
+            // GET parameters from URL (egid=????)
+            function getParam(variable){  
+                var query = window.location.search.substring(1);   
+                var vars = query.split("&");  
+                for (var i=0;i<vars.length;i++) {    
+                    var pair = vars[i].split("=");   
+                    if(pair[0] == variable){return pair[1];}
+                }       
+                return(false);
+            }
+        
+            function showPopover (feature) {
+	             var geometry = feature.getGeometry();
+                        var coord = geometry.getCoordinates();
+                        popup.setPosition(coord);
+                        $(element).popover({
+                            'placement': 'top',
+                            'html': true,
+                            'content': feature.get('strname1') + ' ' + feature.get('deinr')
+                            + '<br>' + feature.get('plz4') + ' ' + feature.get('plzname')
+                        });
+                        $(element).popover('show');
+            }        
+        
+            var iconStyle = new ol.style.Style({
+                image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+                    anchor: [0.5, 40],
+                    anchorXUnits: 'fraction',
+                    anchorYUnits: 'pixels',
+                    // opacity: 0.75,
+                    src: 'icon.png'
+                }))
+            });
+            
+            // Popup on click
+            var element = document.getElementById('popup');
+
+            var popup = new ol.Overlay({
+                element: element,
+                positioning: 'bottom-center',
+                stopEvent: false
+            });
+                        
+            var egid = getParam("egid"); 
+            //console.log(egid);
+                
+           var adresscoord;                
+                
+            // Find egid from REST service
+            var strname1 = '';
+            var deinr = '';
+            var plz4 = '';
+            var plzname = '';
+            var serverVector = new ol.source.ServerVector({
+                format: new ol.format.GeoJSON(),
+                loader: function(extent, resolution, projection){
+                    var reqq = $.ajax({url:'https://api3.geo.admin.ch/rest/services/api/MapServer/find?layer=ch.bfs.gebaeude_wohnungs_register&searchText='+egid+'&searchField=egid&returnGeometry=true&geometryFormat=geojson&contains=false', dataType:'jsonp'});
+
+                    reqq.done(function(response){
+                        coords = response.results[0].geometry.coordinates;
+                        if (coords[0] < 2000000){  // if the api3.geo.admin.ch would change to default LV95 
+                            var coords = [coords[0] + 2000000, coords[1] + 1000000];
+                        }
+
+                        strname1 = response.results[0].properties.strname1;
+                        deinr = response.results[0].properties.deinr;
+                        plz4 = response.results[0].properties.plz4;
+                        plzname = response.results[0].properties.plzname;
+
+                        var point = new ol.geom.Point(coords);
+
+                        var feature = new ol.Feature({
+                            geometry: point,
+                            strname1: strname1,
+                            deinr: deinr,
+                            plz4: plz4,
+                            plzname: plzname
+                        });     
+                        adresscoord = point;
+                        feature.setStyle(iconStyle);
+
+                        
+                        serverVector.addFeatures([feature]);  
+                        
+                        showPopover(feature);                  
+
+                        map.getView().setCenter(coords);
+                        map.getView().setResolution(2.5); 
+                    });
+                    reqq.fail(function(jqXhr, textStatus){
+                        // Raff'sch ned: Falls EGID nicht gefunden wird, kommt 
+                        // folgende Fehlermeldung in der Console:  
+                        // No 'Access-Control-Allow-Origin' header is present on the requested 
+                        // resource. Origin 'http://localhost' is therefore not allowed access. 
+                        // Ich war ja Ã¼berrascht, dass das Ã¼berhaupt funktioniert... 
+                        // -> mal bissle googeln.
+
+                        //console.log("FAIL Re"+textStatus);
+                    })
+                },
+                projection:'EPSG:2056'
+            });        
+        
+            var vectorLayer = new ol.layer.Vector({
+                source: serverVector
+            });
+        
+            
+            // Create the map
+            
+            // GeoAdmin
+            /*
+            var layer = ga.layer.create('ch.swisstopo.pixelkarte-farbe');
+            var map = new ga.Map({
+                target: document.getElementById('map'),
+                layers: [layer, vectorLayer],
+                view: new ol.View({
+                    resolution: 750,
+                    center: [660000, 180000]
+                })
+            });
+            */
+            
+            // SOGIS
+           var projection = new ol.proj.Projection({
+              code: 'EPSG:2056',
+              extent: [2420000, 130000, 2900000, 1350000]
+            });
+
+            var matrixIds = new Array(28);
+ 
+            for (var z = 0; z <=28; ++z){
+              matrixIds[z] = z;
+            }
+            var resolutions = [
+                4000,2000,1000,500,250,100,50,20,10,5,2.5,1,0.5,0.25,0.1
+            ];
+            var layerStrass = new ol.layer.Tile({
+                source: new ol.source.WMTS({
+                    url: 'https://geo-t.so.ch/api/wmts/1.0.0/ch.so.agi.hintergrundkarte_farbig/default/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.png',
+                    matrixSet: '2056',
+                    format: 'image/png',
+                    tileGrid: new ol.tilegrid.WMTS({
+                        origin: [2420000,1350000],
+                        resolutions: resolutions,
+                        matrixIds: matrixIds
+                    }),
+                    extent: [2420000,130000,2900000,1350000],
+                    requestEncoding: 'REST'
+                })
+            });
+            layerStrass.setVisible(false);
+            
+            var layerOrtho = new ol.layer.Tile({
+                source: new ol.source.WMTS({
+                    url: 'https://geo-t.so.ch/api/wmts/1.0.0/ch.so.agi.hintergrundkarte_ortho/default/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.png',
+                    matrixSet: '2056',
+                    format: 'image/png',
+                    tileGrid: new ol.tilegrid.WMTS({
+                        origin: [2420000,1350000],
+                        resolutions: resolutions,
+                        matrixIds: matrixIds
+                    }),
+                    extent: [2420000,130000,2900000,1350000],
+                    requestEncoding: 'REST'
+                })
+            });
+            layerOrtho.setVisible(false);
+
+            
+            var view = new ol.View({
+                    projection: projection,
+                    center: [2607100, 1228700],
+                    resolution: 750,
+                    // Komisch, so funktionierts nicht. Dh. bei einigen Zoomlevels
+                    // wird immer wieder 'serverVector' neu initialisiert -> Abfrage
+                    // des EGID -> zentrieren der Karte.
+                    // Hat vielleicht auch damit zu tun, dass ich ol3 von swisstopo
+                    // verwende? 
+                    //zoom: 25,
+                    //resolutions: [4000,3750,3500,3250,3000,2750,2500,2250,2000,1750,1500,1250,1000,750,650,500,250,100,50,20,10,5,2.5,2,1.5,1,0.5,0.25,0.1,0.05]
+            });
+
+            
+           /**
+          * @constructor
+          * @extends {ol.control.Control}
+          * @param {Object=} opt_options Control options.
+          */
+          var GeolocationControl = function(opt_options) {
+        
+                  var options = opt_options || {};
+                
+                  //var anchor = document.createElement('button');
+                  var anchor =document.getElementById('track')
+                  //anchor.href = '#geolocate';
+                  //anchor.innerHTML = 'G';
+                  //anchor.setAttribute('id','track');
+                  //anchor.setAttribute('type','button');
+                  //anchor.setAttribute('onClick',"track.setChecked(true);recenterMap()");
+                  anchor.setAttribute('onClick',"setGeolocation()");
+                  
+                     
+                  var this_ = this;
+             
+         
+                  var element = document.createElement('div');
+                  element.className = 'geolocate';
+                  element.appendChild(anchor);
+ 
+                
+                  ol.control.Control.call(this, {
+                    element: element,
+                    target: options.target,
+                  });
+
+            };
+            ol.inherits(GeolocationControl, ol.control.Control);
+
+            var map = new ol.Map({
+                renderer: 'canvas',
+                //renderer: 'dom',
+                controls: ol.control.defaults().extend([
+                    new GeolocationControl()
+                ]),
+                ol3Logo: false,
+                target: document.getElementById('map'),
+                layers: [
+                    layerStrass, layerOrtho, vectorLayer
+                ],  
+                view: view
+            }); 
+
+
+/*****************************/            
+        // printing
+        var exportPNGElement = document.getElementById('export-print');
+        exportPNGElement.addEventListener('click', function(e) {
+            map.once('postcompose', function(event) {
+                var canvas = event.context.canvas;
+                img = canvas.toDataURL('image/png');
+                var windowContent = '<!DOCTYPE html>';
+                windowContent += '<html>'
+                windowContent += '<head><title>Standortkarte</title></head>';
+                windowContent += '<body>'
+                windowContent += '<img src="' + img + '">';
+                windowContent += '<p>' + strname1 + ' ' + deinr + ', ' + plz4 + ' ' + plzname + '</p>'; 
+                windowContent += '</body>';
+                windowContent += '</html>';
+                var printWin = window.open('','','width=90%,height=90%');
+                printWin.document.open();
+                printWin.document.write(windowContent);
+                printWin.document.close();
+                printWin.focus();
+                printWin.print();
+                printWin.close();
+            });
+            map.render();
+          }, false);
+
+
+/******************************/
+
+            var geolocation = new ol.Geolocation({
+                projection: view.getProjection()
+            });
+            
+            function setGeolocation (){
+              (track.getChecked() ? track.setChecked(false) : track.setChecked(true));
+              if (track.getChecked()) {
+                featuresOverlay.addFeature(accuracyFeature);
+                featuresOverlay.addFeature(positionFeature);
+                $('#track').css('background',"url('locateon.png') no-repeat");
+        
+              
+              }
+              else{
+                featuresOverlay.removeFeature(accuracyFeature);
+                featuresOverlay.removeFeature(positionFeature);
+                $('#track').css('background',"url('locate.png') no-repeat");
+              }
+            }
+
+            var track = new ol.dom.Input(document.getElementById('track'));
+            track.bindTo('checked', geolocation, 'tracking');
+           
+            // update the HTML page when the position changes.
+            geolocation.on('change', function(evt) {
+                var ext = new ol.extent.boundingExtent([adresscoord.getCoordinates(), positionFeature.getGeometry().getCoordinates()]);
+                var extH = ol.extent.getHeight(ext);
+                var extW = ol.extent.getWidth(ext);
+                
+               if(extW < 50 || extH < 50){
+                    ext = ol.extent.buffer(ext,50);                
+                } 
+                view.fitExtent(ext, map.getSize());
+	            
+	            //alert('test');
+                /*$('#accuracy').text(geolocation.getAccuracy() + ' [m]');
+                $('#altitude').text(geolocation.getAltitude() + ' [m]');
+                $('#altitudeAccuracy').text(geolocation.getAltitudeAccuracy() + ' [m]');
+                $('#heading').text(geolocation.getHeading() + ' [rad]');
+                $('#speed').text(geolocation.getSpeed() + ' [m/s]');*/
+            });
+
+            // handle geolocation error.
+            geolocation.on('error', function(error) {
+                //var info = document.getElementById('info');
+                //info.innerHTML = error.message;
+                //info.style.display = '';
+                alert(error.message);
+            });
+            
+        
+            var accuracyFeature = new ol.Feature();
+            accuracyFeature.bindTo('geometry', geolocation, 'accuracyGeometry');
+
+            var positionFeature = new ol.Feature();
+               positionFeature.bindTo('geometry', geolocation, 'position')
+               .transform(function() {}, function(coordinates) {
+                return coordinates ? new ol.geom.Point(coordinates) : null;
+            });
+
+            var featuresOverlay = new ol.FeatureOverlay({
+                map: map,
+                //features: [accuracyFeature, positionFeature]
+            });
+            
+            map.addOverlay(popup);
+
+            map.on('click', function(evt) {
+                var feature = map.forEachFeatureAtPixel(evt.pixel,
+                      function(feature, layer) {
+                          return feature;
+                      });                
+                if (feature) {
+                    showPopover(feature);
+                } else {
+                    $(element).popover('destroy');
+                }
+            });
+
+            
+            // change mouse cursor when over marker
+            $(map.getViewport()).on('mousemove', function(e) {
+                var pixel = map.getEventPixel(e.originalEvent);
+                var hit = map.forEachFeatureAtPixel(pixel, function(feature, layer) {
+                    return true;
+                });
+                if (hit) {
+                    map.getTarget().style.cursor = 'pointer';
+                } else {
+                    map.getTarget().style.cursor = '';
+                }
+            });
+
+        // switch layer
+         $('#layer-select').append('<option value="layer">Strassenkarte</option>');
+         $('#layer-select').append('<option value="layerOrtho">Orthofoto</option>');
+         
+         $('#layer-select').change(function() {
+            if (layerStrass.getVisible()) {
+	          layerStrass.setVisible(false);
+	          layerOrtho.setVisible(true);
+            }
+            else{
+              layerStrass.setVisible(true);
+	          layerOrtho.setVisible(false);
+            }
+         });
+         $('#layer-select').trigger('change');
+        </script>
+    </body>
+</html>
