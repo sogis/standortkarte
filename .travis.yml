@@ -11,7 +11,15 @@ branches:
   only: 
     - master
 
-script: 
-  - docker build -t sogis/standortkarte:latest . 
+install: true
 
+script:
+  - ./gradlew versionTxt buildDockerImage 
+  - docker images
 
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script: ./gradlew pushDockerImages -i
+    on:
+      branch: master
