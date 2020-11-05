@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/sogis/standortkarte.svg?branch=master)](https://travis-ci.org/sogis/standortkarte)
+![CI/CD](https://github.com/sogis/standortkarte/workflows/CI/CD/badge.svg)
+
 
 # Standortkarten
 
