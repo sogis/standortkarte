@@ -1,5 +1,5 @@
 
 Version: 1.0.LOCALBUILD
-Revision: 04aebb2d46d6ff8eb598bfe3d28080b52fa7e8c8
-Buildtime: 15-11-2019 11:27:33
+Revision: 9776ac84496466f9dc851f2e6ea1224382552650
+Buildtime: 05-11-2020 17:44:08
 Application-name: standortkarte
