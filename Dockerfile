@@ -1,13 +1,5 @@
-FROM nginx:stable
+FROM nginxinc/nginx-unprivileged:stable-alpine
 
-COPY nginx.conf /etc/nginx/nginx.conf
-
-RUN touch /var/run/nginx.pid && \
-  chown -R www-data:www-data /var/run/nginx.pid && \
-  chown -R www-data:www-data /var/cache/nginx
-
-RUN mkdir -p /opt/standortkarte/
+COPY standortkarte.conf /etc/nginx/conf.d/default.conf
 
 COPY ./standortkarte/ /opt/standortkarte/
-
-USER www-data
