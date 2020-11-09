@@ -196,10 +196,10 @@
                             var coords = [coords[0] + 2000000, coords[1] + 1000000];
                         }
 
-                        strname1 = response.results[0].properties.strname1;
+                        strname1 = response.results[0].properties.strname[0];
                         deinr = response.results[0].properties.deinr;
-                        plz4 = response.results[0].properties.plz4;
-                        plzname = response.results[0].properties.plzname;
+                        plz4 = response.results[0].properties.dplz4;
+                        plzname = response.results[0].properties.dplzname;
 
                         var point = new ol.geom.Point(coords);
 
@@ -271,7 +271,7 @@
             ];
             var layerStrass = new ol.layer.Tile({
                 source: new ol.source.WMTS({
-                    url: 'https://geo-t.so.ch/api/wmts/1.0.0/ch.so.agi.hintergrundkarte_farbig/default/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.png',
+                    url: 'https://geo.so.ch/api/wmts/1.0.0/ch.so.agi.hintergrundkarte_farbig/default/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.png',
                     matrixSet: '2056',
                     format: 'image/png',
                     tileGrid: new ol.tilegrid.WMTS({
@@ -287,7 +287,7 @@
             
             var layerOrtho = new ol.layer.Tile({
                 source: new ol.source.WMTS({
-                    url: 'https://geo-t.so.ch/api/wmts/1.0.0/ch.so.agi.hintergrundkarte_ortho/default/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.png',
+                    url: 'https://geo.so.ch/api/wmts/1.0.0/ch.so.agi.hintergrundkarte_ortho/default/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.png',
                     matrixSet: '2056',
                     format: 'image/png',
                     tileGrid: new ol.tilegrid.WMTS({
